@@ -39,8 +39,8 @@
     _init: function() {
       var self = this;
 
-      if (this.showWidgetOnAddonClick && (this.$element.parent().hasClass('input-group') || this.$element.parent().hasClass('input-prepend'))) {
-        this.$element.parent('.input-group, .input-prepend').find('.input-group-addon').on({
+      if (this.showWidgetOnAddonClick && (this.$element.closest('.bootstrap-timepicker'))) {
+        this.$element.closest('.bootstrap-timepicker').find('.time-addon').on({
           'click.timepicker': $.proxy(this.showWidget, this)
         });
         this.$element.on({
@@ -242,10 +242,10 @@
         templateContent;
 
       if (this.showInputs) {
-        hourTemplate = '<input type="text" data-name="hour" class="bootstrap-timepicker-hour form-control" maxlength="2"/>';
-        minuteTemplate = '<input type="text" data-name="minute" class="bootstrap-timepicker-minute form-control" maxlength="2"/>';
-        secondTemplate = '<input type="text" data-name="second" class="bootstrap-timepicker-second form-control" maxlength="2"/>';
-        meridianTemplate = '<input type="text" data-name="meridian" class="bootstrap-timepicker-meridian form-control" maxlength="2"/>';
+        hourTemplate = '<input type="text" class="bootstrap-timepicker-hour" maxlength="2"/>';
+        minuteTemplate = '<input type="text" class="bootstrap-timepicker-minute" maxlength="2"/>';
+        secondTemplate = '<input type="text" class="bootstrap-timepicker-second" maxlength="2"/>';
+        meridianTemplate = '<input type="text" class="bootstrap-timepicker-meridian" maxlength="2"/>';
       } else {
         hourTemplate = '<span class="bootstrap-timepicker-hour"></span>';
         minuteTemplate = '<span class="bootstrap-timepicker-minute"></span>';
@@ -614,7 +614,31 @@
       var widgetWidth = this.$widget.outerWidth(), widgetHeight = this.$widget.outerHeight(), visualPadding = 10, windowWidth =
         $(window).width(), windowHeight = $(window).height(), scrollTop = $(window).scrollTop();
 
-      var zIndex = parseInt(this.$element.parents().filter(function() {}).first().css('z-index'), 10) + 10;
+      var elem = this.$element.parent(), position, value;
+      while ( elem.length && elem[ 0 ] !== document )
+      {
+        // Ignore z-index if position is set to a value where z-index is ignored by the browser
+        // This makes behavior of this function consistent across browsers
+        // WebKit always returns auto if the element is positioned
+        position = elem.css( "position" );
+        if ( position === "absolute" || position === "relative" || position === "fixed" ) {
+          // IE returns 0 when zIndex is not specified
+          // other browsers return a string
+          // we ignore the case of nested elements with an explicit value of 0
+          // <div style="z-index: -10;"><div style="z-index: 0;"></div></div>
+          value = parseInt( elem.css( "zIndex" ), 10 );
+          if ( !isNaN( value ) && value !== 0 ) {
+            break;
+          }
+          else
+          {
+            value = 0;
+          }
+        }
+        elem = elem.parent();
+      }
+
+      var zIndex = value + 10;
       var offset = this.component ? this.component.parent().offset() : this.$element.offset();
       var height = this.component ? this.component.outerHeight(true) : this.$element.outerHeight(false);
       var width = this.component ? this.component.outerWidth(true) : this.$element.outerWidth(false);
@@ -739,8 +763,28 @@
           minute,
           second,
           meridian;
+     
+      if (typeof time === 'number')
+      {
+        second = time;
+        minute = Math.floor(second / 60);
+        second %= 60;
+        hour = Math.floor(minute / 60);
+        minute %= 60;
+        if (this.showMeridian){
+          meridian = 'AM';
+          if (hour > 12){
+            meridian = 'PM';
+            hour = hour % 12;
+          }
 
-      if (typeof time === 'object' && time.getMonth){
+          if (hour === 12){
+            meridian = 'PM';
+          }
+        }
+      } 
+      else if (typeof time === 'object' && time.getMonth)
+      {
         // this is a date object
         hour    = time.getHours();
         minute  = time.getMinutes();
